@@ -1,0 +1,73 @@
+{
+    "name": "karim-tao/pipedrive-client",
+    "description": "Framework-agnostic PHP client for the Pipedrive API. PSR-18, OAuth handled, raw responses kept.",
+    "type": "library",
+    "keywords": [
+        "pipedrive",
+        "pipedrive-api",
+        "pipedrive-client",
+        "psr-18"
+    ],
+    "homepage": "https://github.com/karim-tao/pipedrive-client",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Karim Tao"
+        }
+    ],
+    "support": {
+        "issues": "https://github.com/karim-tao/pipedrive-client/issues",
+        "source": "https://github.com/karim-tao/pipedrive-client"
+    },
+    "require": {
+        "php": "^8.3",
+        "php-http/discovery": "^1.14",
+        "psr/event-dispatcher": "^1.0",
+        "psr/http-client": "^1.0",
+        "psr/http-client-implementation": "^1.0",
+        "psr/http-factory": "^1.0",
+        "psr/http-factory-implementation": "^1.0",
+        "psr/http-message": "^1.0 || ^2.0"
+    },
+    "require-dev": {
+        "guzzlehttp/guzzle": "^7.8",
+        "laravel/pao": "^1.1",
+        "laravel/pint": "^1.29",
+        "nyholm/psr7": "^1.8",
+        "pestphp/pest": "^4.4",
+        "pestphp/pest-plugin-type-coverage": "^4.0",
+        "phpstan/phpstan": "^2.2"
+    },
+    "autoload": {
+        "psr-4": {
+            "Pipedrive\\Client\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Pipedrive\\Client\\Tests\\": "tests/"
+        }
+    },
+    "config": {
+        "sort-packages": true,
+        "allow-plugins": {
+            "pestphp/pest-plugin": true,
+            "php-http/discovery": true
+        }
+    },
+    "scripts": {
+        "lint": "pint",
+        "test:lint": "pint --test",
+        "test:static": "phpstan analyse",
+        "test:type-coverage": "pest --type-coverage --min=100",
+        "test:unit": "pest --parallel --coverage --min=100",
+        "test": [
+            "@test:lint",
+            "@test:static",
+            "@test:type-coverage",
+            "@test:unit"
+        ]
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
+}
