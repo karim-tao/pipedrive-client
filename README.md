@@ -48,6 +48,7 @@ $pipedrive = PipedriveClient::factory()
     ->withClientCredentials($clientId, $clientSecret) // required
     ->withAuthorizationCodeAuth($code, $redirectUri)  // required (see Authentication for more details)
     ->withBaseUrl('https://api.pipedrive.com')        // optional
+    ->withTokenUrl($tokenUrl)                         // optional
     ->withEventDispatcher($events)                    // optional (PSR-14)
     ->withHttpClient($client)                         // optional (PSR-18)
     ->make();
