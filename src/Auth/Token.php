@@ -9,8 +9,8 @@ final readonly class Token
     public function __construct(
         private string $accessToken,
         private int $expiresAt,
-        private string $refreshToken,
-        private string $apiDomain,
+        private ?string $refreshToken = null,
+        private ?string $baseUrl = null,
     ) {}
 
     public static function fromOAuthResponse(mixed $response): self
@@ -28,20 +28,17 @@ final readonly class Token
             throw new PipedriveAuthenticationException('Pipedrive authentication response did not include a valid expiration.');
         }
 
-        if (! is_string($refreshToken) || $refreshToken === '') {
-            throw new PipedriveAuthenticationException('Pipedrive authentication response did not include a refresh token.');
-        }
-
-        if (! is_string($apiDomain) || $apiDomain === '') {
-            throw new PipedriveAuthenticationException('Pipedrive authentication response did not include an api domain.');
-        }
-
-        return new self($accessToken, time() + (int) $expiresIn, $refreshToken, $apiDomain);
+        return new self(
+            $accessToken,
+            time() + (int) $expiresIn,
+            is_string($refreshToken) && $refreshToken !== '' ? $refreshToken : null,
+            is_string($apiDomain) && $apiDomain !== '' ? $apiDomain : null,
+        );
     }
 
-    public static function fromValues(string $accessToken, int $expiresAt, string $refreshToken, string $apiDomain): self
+    public static function fromValues(string $accessToken, int $expiresAt, ?string $refreshToken = null, ?string $baseUrl = null): self
     {
-        return new self($accessToken, $expiresAt, $refreshToken, $apiDomain);
+        return new self($accessToken, $expiresAt, $refreshToken, $baseUrl);
     }
 
     public function accessToken(): string
@@ -49,7 +46,7 @@ final readonly class Token
         return $this->accessToken;
     }
 
-    public function refreshToken(): string
+    public function refreshToken(): ?string
     {
         return $this->refreshToken;
     }
@@ -59,9 +56,9 @@ final readonly class Token
         return $this->expiresAt;
     }
 
-    public function apiDomain(): string
+    public function baseUrl(): ?string
     {
-        return $this->apiDomain;
+        return $this->baseUrl;
     }
 
     public function isExpired(): bool

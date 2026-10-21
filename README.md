@@ -13,7 +13,7 @@ use Pipedrive\Client\PipedriveClient;
 
 $pipedrive = PipedriveClient::factory()
     ->withClientCredentials($clientId, $clientSecret)
-    ->withToken($accessToken, $expiresAt, $refreshToken, $apiDomain)
+    ->withToken($accessToken, $expiresAt, $refreshToken, $baseUrl)
     ->make();
 
 $user = $pipedrive->users()->me();
@@ -47,6 +47,7 @@ use Pipedrive\Client\PipedriveClient;
 $pipedrive = PipedriveClient::factory()
     ->withClientCredentials($clientId, $clientSecret) // required
     ->withAuthorizationCodeAuth($code, $redirectUri)  // required (see Authentication for more details)
+    ->withBaseUrl('https://api.pipedrive.com')        // optional
     ->withEventDispatcher($events)                    // optional (PSR-14)
     ->withHttpClient($client)                         // optional (PSR-18)
     ->make();
@@ -57,10 +58,10 @@ $pipedrive = PipedriveClient::factory()
 A client always needs your Pipedrive app credentials plus one authentication method, slotted into the builder above.
 The token manager exchanges the code and refreshes the token for you.
 
-| Method             | Builder call                                                       | Use when                                 |
-|--------------------|--------------------------------------------------------------------|------------------------------------------|
-| Authorization code | `->withAuthorizationCodeAuth($code, $redirectUri)`                 | right after the user authorised your app |
-| Token              | `->withToken($accessToken, $expiresAt, $refreshToken, $apiDomain)` | reuse a token you stored                 |
+| Method             | Builder call                                                     | Use when                                 |
+|--------------------|------------------------------------------------------------------|------------------------------------------|
+| Authorization code | `->withAuthorizationCodeAuth($code, $redirectUri)`               | right after the user authorised your app |
+| Token              | `->withToken($accessToken, $expiresAt, $refreshToken, $baseUrl)` | reuse a token you stored                 |
 
 Read (and persist) the current token:
 
@@ -71,10 +72,10 @@ $token = $pipedrive->token();
 $token->accessToken();
 $token->refreshToken();
 $token->expiresAt();
-$token->apiDomain();
+$token->baseUrl();
 ```
 
-Every call goes to the `api_domain` of the user's company, which Pipedrive returns with the token.
+The token's base URL is the `api_domain` of the user's company, which Pipedrive returns with the token. When it is there it wins over `withBaseUrl()`, so every call goes to that company.
 
 ### Endpoints
 
@@ -91,7 +92,7 @@ With an event dispatcher, the client dispatches `Pipedrive\Client\Events\TokenRe
 $event->token->accessToken();
 $event->token->refreshToken();
 $event->token->expiresAt();
-$event->token->apiDomain();
+$event->token->baseUrl();
 ```
 
 ### Raw requests
@@ -114,7 +115,7 @@ $response->headers();
 - refreshes the token automatically when it expires, and once more when Pipedrive answers 401;
 - dispatches `TokenRefreshed` through the PSR-14 event dispatcher, when you pass one, every time it obtains a token.
 
-Every endpoint is a small typed wrapper over `send()`, which calls the `api_domain` of the token.
+Every endpoint is a small typed wrapper over `send()`, which calls the base URL of the token, or the one of the factory.
 
 ## Testing
 

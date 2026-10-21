@@ -18,7 +18,8 @@ function tokenManager(FakeHttpClient $http, ?Grant $grant = null, ?Token $token 
 
     return new TokenManager(
         new PipedriveCredentials('client-id', 'client-secret'),
-        new Transporter($http, $factory, $factory, $factory),
+        new Transporter($http, $factory, $factory, $factory, 'https://api.pipedrive.com'),
+        'https://oauth.pipedrive.com/oauth/token',
         $grant,
         $token,
         $events,
@@ -33,7 +34,7 @@ test('ensure exchanges the authorization code with http basic auth', function ()
     $request = $http->requests[0];
 
     expect($token->accessToken())->toBe('new-access')
-        ->and($token->apiDomain())->toBe('https://acme.pipedrive.com')
+        ->and($token->baseUrl())->toBe('https://acme.pipedrive.com')
         ->and((string) $request->getUri())->toBe('https://oauth.pipedrive.com/oauth/token')
         ->and($request->getHeaderLine('Authorization'))->toBe('Basic ' . base64_encode('client-id:client-secret'))
         ->and((string) $request->getBody())->toBe('grant_type=authorization_code&code=the-code&redirect_uri=https%3A%2F%2Fapp.test%2Fcallback');
@@ -65,6 +66,15 @@ test('refresh without a token authenticates with the grant', function () {
     $token = tokenManager($http, grant: new AuthorizationCodeGrant('the-code', 'https://app.test/callback'))->refresh();
 
     expect($token->accessToken())->toBe('new-access');
+});
+
+test('ensure authenticates again when an expired token has no refresh token', function () {
+    $http = new FakeHttpClient([tokenResponse()]);
+
+    $token = tokenManager($http, grant: new AuthorizationCodeGrant('the-code', 'https://app.test/callback'), token: Token::fromValues('stale', time() - 10))->ensure();
+
+    expect($token->accessToken())->toBe('new-access')
+        ->and((string) $http->requests[0]->getBody())->toContain('grant_type=authorization_code');
 });
 
 test('ensure fails without a grant or a token', function () {

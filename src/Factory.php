@@ -28,6 +28,10 @@ final class Factory
 
     private ?Token $token = null;
 
+    private string $baseUrl = 'https://api.pipedrive.com';
+
+    private ?string $tokenUrl = null;
+
     private ?EventDispatcherInterface $events = null;
 
     private ?ClientInterface $http = null;
@@ -58,9 +62,23 @@ final class Factory
         return $this;
     }
 
-    public function withToken(string $accessToken, int $expiresAt, string $refreshToken, string $apiDomain): self
+    public function withToken(string $accessToken, int $expiresAt, ?string $refreshToken = null, ?string $baseUrl = null): self
     {
-        $this->token = Token::fromValues($accessToken, $expiresAt, $refreshToken, $apiDomain);
+        $this->token = Token::fromValues($accessToken, $expiresAt, $refreshToken, $baseUrl);
+
+        return $this;
+    }
+
+    public function withBaseUrl(string $baseUrl): self
+    {
+        $this->baseUrl = $baseUrl;
+
+        return $this;
+    }
+
+    public function withTokenUrl(string $tokenUrl): self
+    {
+        $this->tokenUrl = $tokenUrl;
 
         return $this;
     }
@@ -103,6 +121,7 @@ final class Factory
             requestFactory: $this->requestFactory ?? Psr17FactoryDiscovery::findRequestFactory(),
             streamFactory: $this->streamFactory ?? Psr17FactoryDiscovery::findStreamFactory(),
             uriFactory: $this->uriFactory ?? Psr17FactoryDiscovery::findUriFactory(),
+            baseUrl: $this->baseUrl,
         );
 
         return ($this->instantiator)(
@@ -110,6 +129,7 @@ final class Factory
             tokens: new TokenManager(
                 credentials: new PipedriveCredentials($this->clientId, $this->clientSecret),
                 transporter: $transporter,
+                tokenUrl: $this->tokenUrl ?? 'https://oauth.pipedrive.com/oauth/token',
                 grant: $this->grant,
                 token: $this->token,
                 events: $this->events,

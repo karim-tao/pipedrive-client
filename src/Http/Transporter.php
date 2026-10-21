@@ -19,14 +19,20 @@ final readonly class Transporter
         private RequestFactoryInterface $requestFactory,
         private StreamFactoryInterface $streamFactory,
         private UriFactoryInterface $uriFactory,
+        private string $baseUrl,
     ) {}
 
     /**
      * @param  array<string, mixed>  $options
      */
-    public function send(string $method, string $url, array $options = [], ?string $bearer = null): ResponseInterface
+    public function send(string $method, string $uri, array $options = [], ?string $accessToken = null, ?string $baseUrl = null): ResponseInterface
     {
-        return $this->http->sendRequest($this->buildRequest($method, $url, $options, $bearer));
+        return $this->http->sendRequest($this->buildRequest($method, $uri, $options, $accessToken, $baseUrl));
+    }
+
+    public function isExpiredTokenResponse(ResponseInterface $response): bool
+    {
+        return $response->getStatusCode() === 401;
     }
 
     public function response(ResponseInterface $response): PipedriveResponse
@@ -51,20 +57,20 @@ final readonly class Transporter
     /**
      * @param  array<string, mixed>  $options
      */
-    private function buildRequest(string $method, string $url, array $options, ?string $bearer): RequestInterface
+    private function buildRequest(string $method, string $uri, array $options, ?string $accessToken, ?string $baseUrl): RequestInterface
     {
-        $uri = $this->uriFactory->createUri($url);
+        $url = $this->uriFactory->createUri(str_contains($uri, '://') ? $uri : rtrim($baseUrl ?? $this->baseUrl, '/') . '/' . ltrim($uri, '/'));
 
         if (isset($options['query']) && is_array($options['query']) && $options['query'] !== []) {
-            $uri = $uri->withQuery(http_build_query($options['query']));
+            $url = $url->withQuery(http_build_query($options['query']));
         }
 
         $request = $this->requestFactory
-            ->createRequest($method, $uri)
+            ->createRequest($method, $url)
             ->withHeader('Accept', 'application/json');
 
-        if ($bearer !== null) {
-            $request = $request->withHeader('Authorization', 'Bearer ' . $bearer);
+        if ($accessToken !== null) {
+            $request = $request->withHeader('Authorization', 'Bearer ' . $accessToken);
         }
 
         if (isset($options['headers']) && is_array($options['headers'])) {

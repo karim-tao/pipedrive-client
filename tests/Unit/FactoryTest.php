@@ -22,7 +22,7 @@ test('make builds a client using PSR discovery when no transport is injected', f
         ->make();
 
     expect($client)->toBeInstanceOf(PipedriveClient::class)
-        ->and($client->token()?->apiDomain())->toBe('https://acme.pipedrive.com');
+        ->and($client->token()?->baseUrl())->toBe('https://acme.pipedrive.com');
 });
 
 test('make hands the event dispatcher to the token manager', function () {
@@ -36,4 +36,41 @@ test('make hands the event dispatcher to the token manager', function () {
 
     expect($events->events)->toHaveCount(1)
         ->and($events->events[0])->toBeInstanceOf(TokenRefreshed::class);
+});
+
+test('make sends the calls to the default address when the token has none', function () {
+    $http = new FakeHttpClient([httpResponse(200, [], '{"success":true,"data":{"id":5}}')]);
+
+    pipedriveFactory($http)
+        ->withToken('access', PHP_INT_MAX)
+        ->make()
+        ->users()
+        ->me();
+
+    expect((string) $http->requests[0]->getUri())->toBe('https://api.pipedrive.com/api/v1/users/me');
+});
+
+test('make sends the calls to the given address when the token has none', function () {
+    $http = new FakeHttpClient([httpResponse(200, [], '{"success":true,"data":{"id":5}}')]);
+
+    pipedriveFactory($http)
+        ->withToken('access', PHP_INT_MAX)
+        ->withBaseUrl('https://acme.pipedrive.com')
+        ->make()
+        ->users()
+        ->me();
+
+    expect((string) $http->requests[0]->getUri())->toBe('https://acme.pipedrive.com/api/v1/users/me');
+});
+
+test('make asks for the token at the given token url', function () {
+    $http = new FakeHttpClient([tokenResponse()]);
+
+    pipedriveFactory($http)
+        ->withAuthorizationCodeAuth('the-code', 'https://app.test/callback')
+        ->withTokenUrl('https://auth.example.test/token')
+        ->make()
+        ->authenticate();
+
+    expect((string) $http->requests[0]->getUri())->toBe('https://auth.example.test/token');
 });

@@ -40,18 +40,13 @@ final class PipedriveClient
     public function send(string $method, string $uri, array $options = []): PipedriveResponse
     {
         $token = $this->tokens->ensure();
-        $response = $this->transporter->send($method, $this->url($token, $uri), $options, $token->accessToken());
+        $response = $this->transporter->send($method, $uri, $options, $token->accessToken(), $token->baseUrl());
 
-        if ($response->getStatusCode() === 401) {
+        if ($this->transporter->isExpiredTokenResponse($response)) {
             $token = $this->tokens->refresh();
-            $response = $this->transporter->send($method, $this->url($token, $uri), $options, $token->accessToken());
+            $response = $this->transporter->send($method, $uri, $options, $token->accessToken(), $token->baseUrl());
         }
 
         return $this->transporter->response($response);
-    }
-
-    private function url(Token $token, string $uri): string
-    {
-        return rtrim($token->apiDomain(), '/') . '/' . ltrim($uri, '/');
     }
 }

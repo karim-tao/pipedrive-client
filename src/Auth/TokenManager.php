@@ -14,6 +14,7 @@ final class TokenManager
     public function __construct(
         private readonly PipedriveCredentials $credentials,
         private readonly Transporter $transporter,
+        private readonly string $tokenUrl,
         private readonly ?Grant $grant = null,
         private ?Token $token = null,
         private readonly ?EventDispatcherInterface $events = null,
@@ -25,24 +26,20 @@ final class TokenManager
             return $this->token;
         }
 
-        if ($this->token !== null) {
+        if ($this->token?->refreshToken() !== null) {
             return $this->refresh();
         }
 
-        if ($this->grant === null) {
-            throw new PipedriveAuthenticationException('Pipedrive cannot authenticate: no grant configured and no token to refresh.');
-        }
-
-        return $this->store($this->requestToken($this->grant));
+        return $this->store($this->authenticate());
     }
 
     public function refresh(): Token
     {
-        if ($this->token === null) {
-            return $this->ensure();
-        }
+        $refreshToken = $this->token?->refreshToken();
 
-        return $this->store($this->requestToken(new RefreshTokenGrant($this->token->refreshToken())));
+        return $this->store($refreshToken !== null
+            ? $this->requestToken(new RefreshTokenGrant($refreshToken))
+            : $this->authenticate());
     }
 
     public function current(): ?Token
@@ -50,10 +47,19 @@ final class TokenManager
         return $this->token;
     }
 
+    private function authenticate(): Token
+    {
+        if ($this->grant === null) {
+            throw new PipedriveAuthenticationException('Pipedrive cannot authenticate: no grant configured and no refreshable token.');
+        }
+
+        return $this->requestToken($this->grant);
+    }
+
     private function requestToken(Grant $grant): Token
     {
         $response = $this->transporter->response(
-            $this->transporter->send('POST', 'https://oauth.pipedrive.com/oauth/token', [
+            $this->transporter->send('POST', $this->tokenUrl, [
                 'form_params' => $grant->parameters(),
                 'headers' => [
                     'Authorization' => 'Basic ' . base64_encode($this->credentials->clientId . ':' . $this->credentials->clientSecret),
